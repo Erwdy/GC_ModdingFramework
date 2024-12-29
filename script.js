@@ -55,6 +55,39 @@ if(!this.JSON_print_0){
 if(!fs){
     var fs=require('fs');
 }
+function getAllFilesWithWorkshop(filePath) {
+    let allFilePaths = [];
+    // console.log(`Steamwork is exist: ${SteamSDK.isInitSuccess} `);
+    // if(SteamSDK.isInitSuccess){
+    //     console.log(` appid: ${SteamSDK.steamSdk.getAppId()}`);//this can cause no steam window close   ---have fixed
+    //     var workshopPath=`../../workshop/content/${SteamSDK.steamSdk.getAppId()}`;
+    // }else{}
+    if (fs.existsSync(filePath)) {
+        const files = fs.readdirSync(filePath);
+        for (let i = 0; i < files.length; i++) {
+            let file = files[i];
+            let currentFilePath = filePath + '/' + file;
+            let stats = fs.lstatSync(currentFilePath);
+            if (stats.isDirectory()) {
+                allFilePaths = allFilePaths.concat(getAllFiles(currentFilePath));
+            } else {
+               allFilePaths.push(currentFilePath);
+            }
+        }
+    }
+    var workshopPath=`../../workshop/content/3265880`;
+    if(fs.existsSync(workshopPath)){
+        var directories = fs.readdirSync(workshopPath);
+        for(var i in directories){
+            // console.log(`${workshopPath}/${directories[i]}/AllFilesIsInFlag_${filePath}`)
+            if(fs.existsSync(`${workshopPath}/${directories[i]}/AllFilesIsInFlag_${filePath}`)){
+                console.log(`loaded workshop file ${directories[i]}`);
+                allFilePaths = allFilePaths.concat(getAllFiles(`${workshopPath}/${directories[i]}`));
+            }
+        }
+    }
+    return allFilePaths;
+}
 function getAllFiles(filePath) {
     let allFilePaths = [];
     if (fs.existsSync(filePath)) {
@@ -83,6 +116,54 @@ LoaderManager.prototype.load = function (url, complete, progress, type, priority
         url=redirect;
     OldLoaderManager_load.apply(this, arguments);
 }
+Loader.prototype.load = function (url, type, cache, group, ignoreCache) {
+    (cache === void 0) && (cache = true);
+    (ignoreCache === void 0) && (ignoreCache = false);
+    this._url = url;
+    var isImg=false;
+    if (url.indexOf("data:image") === 0){
+        this._type = type = "image";
+        isImg=true;
+    }
+    else {
+        this._type = type || (type = this.getTypeFromUrl(url));
+    }
+    this._cache = cache;
+    this._data = null;
+    if (!ignoreCache && Loader.loadedMap[url]) {
+        this._data = Loader.loadedMap[url];
+        this.event("progress", 1);
+        this.event("complete", this._data);
+        return;
+    }
+    if (group)
+        Loader.setGroup(url, group);
+    // console.log(`${url}         ${isImg}`)
+    fs.readFile(isImg?url.slice(10) : url,(e,data)=>{if(e){this.onError(e)}else{//10=="data:image".length
+        // console.log(`type ${type}`)
+        console.trace('a')
+        try{
+            data=data.buffer;
+            if(type!=="arraybuffer"&&type !== "pkm"&&type !== "image_decrypt"&&type!=="image"){
+                data=new TextDecoder('utf-8').decode(data)
+            }
+            var flag = true;
+            try {
+                if (this._responseType === "json") {
+                    data = JSON.parse(data);
+                }
+                else if (this._responseType === "xml") {
+                    data = Utils.parseXMLFromString(data);
+                }
+            }
+            catch (e) {
+                flag = false;
+                console.error(e.message);
+            }
+            flag && this.onLoaded(data)
+        }catch(e){console.log(e)}
+    }})
+};
 ClientMain.prototype.loadStartupJson = function () {
     if (!Config.RELEASE_GAME) {
         SyncTask.taskOver(this.initTask);
@@ -101,7 +182,7 @@ ClientMain.prototype.loadStartupJson = function () {
                 alert("cound not find the merged version of Json!");
                 return;
             }
-            console.trace('a')
+            // console.trace('a')
             // for(var i in startupJsons){
             //     var repair=JSON_print_0[i]
             //     if(repair){
@@ -119,7 +200,7 @@ ClientMain.prototype.loadStartupJson = function () {
                     }
                 }
             }
-            console.trace('b')
+            // console.trace('b')
             var oldLoadJson1 = FileUtils.loadJsonFile;
             FileUtils.loadJsonFile = function (localURL, onFin, onErrorTips) {
                 if (onErrorTips === void 0) { onErrorTips = true; }
@@ -262,11 +343,31 @@ var Apply=function(objb,add){
     return objb;
 }
 
-var fileLS=getAllFiles('AllAssetsBy_print_0');
+// var oldInit=SteamSDK.init;
+// SteamSDK.init=function(validationMode, validationPrompt){
+//     oldInit.apply(this, arguments);
+//     var fileLS=getAllFilesWorkshop('AllAssetsBy_print_0');
+//     for(var i in fileLS){
+//         var split=fileLS[i];
+//         split=split.split('/');
+//         split.splice(0,6,'asset');
+//         if(split[1]=='json'){
+//             split=split.join('/');
+//             if(!JSON_print_0[split]){
+//                 JSON_print_0[split]=[];
+//             }
+//             JSON_print_0[split].push(JSON.parse(fs.readFileSync(fileLS[i]).toString()));
+//         }else{
+//             AssetsNotIncludeJSON_print_0[split.join('/')]=fileLS[i];
+//         }
+//     }
+// }
+
+var fileLS=getAllFilesWithWorkshop('AllAssetsBy_print_0');
 for(var i in fileLS){
     var split=fileLS[i];
     split=split.split('/');
-    split.splice(0,2,'asset');
+    split.splice(0,split[0]=='..'?6:2,'asset');
     if(split[1]=='json'){
         split=split.join('/');
         if(!JSON_print_0[split]){
