@@ -34,6 +34,7 @@ try{
                         if(isFirstRun){
                             fs.appendFileSync('./mod.txt',`${codeName}:on\n`);
                             modList.push([codeName,'on']);
+                            modList.push([]);
                         }
                     }
                 }
@@ -42,10 +43,13 @@ try{
     }
     for(var i=0;i<modList.length;i+=2){
         if(modList[i][1]=='on'){
-            var script=require('fs').readFileSync(codeLS[modList[i][0]]?codeLS[modList[i][0]]:'./mod/'+modList[i][0]+'/script.js').toString();
-            var s=document.createElement('script');
-            document.body.appendChild(s);
-            s.appendChild(document.createTextNode(`try{;${script};}catch(e){alert('error:mod:${modList[i][0]}:'+e.toString());}`));
+            try
+            {
+                var script=require('fs').readFileSync(codeLS[modList[i][0]]?codeLS[modList[i][0]]:'./mod/'+modList[i][0]+'/script.js').toString();
+                eval(script);
+            }catch(e){
+                alert('error:mod:'+modList[i][0]+':'+e.toString());
+            }
         }
     }
 }catch(e){alert('error:'+e.toString());};
