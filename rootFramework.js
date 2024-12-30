@@ -2,21 +2,24 @@
 ;window.document.title+='mod版本';
 try{
     var fs=require('fs');
-    var isFirstRun=!fs.existsSync('./mod.txt');
-    if(isFirstRun){
-        var modList=[]
+    if(!fs.existsSync('./mod.txt')){
         fs.writeFileSync('./mod.txt','')
-    }else{
-        var modList=fs.readFileSync('./mod.txt').toString();
-        modList=modList.split(/[\s\n]/);
-        for(var i=0;i<modList.length;i++){
-            if(modList[i].includes('|')){
-                modList[i]=modList[i].split('|');
-            }else if(modList[i].includes('/')){
-                modList[i]=modList[i].split('/');
-            }else if(modList[i].includes(':')){
-                modList[i]=modList[i].split(':');
-            }
+    }
+    var modList=fs.readFileSync('./mod.txt').toString();
+    if(modList.includes('\r')){
+        modList=modList.replaceAll('\r','');
+    }
+    modList=modList.split(/\n/);
+    for(var i=0;i<modList.length;i++){
+        if(modList[i].includes('|')){
+            modList[i]=modList[i].split('|');
+        }else if(modList[i].includes('/')){
+            modList[i]=modList[i].split('/');
+        }else if(modList[i].includes(':')){
+            modList[i]=modList[i].split(':');
+        }
+        if(modList[i].length==1 && modList[i][0]==''){
+            modList.splice(i,1);
         }
     }
     var codeLS={}
@@ -29,6 +32,7 @@ try{
             for(var j in two){
                 if(two[j].includes('ScriptNameFlag_')){
                     var codeName=two[j].slice(15);
+                    codeName=codeName.split('.')[0];
                     if(fs.existsSync(`${workshopPath}/${directories[i]}/script.js`)){
                         codeLS[codeName]=`${workshopPath}/${directories[i]}/script.js`;
                         if(isFirstRun){
